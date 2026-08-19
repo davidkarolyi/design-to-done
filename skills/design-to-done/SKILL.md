@@ -3,7 +3,7 @@ name: design-to-done
 license: MIT
 metadata:
   version: 1.0.0
-description: The operating system for how projects get run in this repo. Every project lives in its own numbered folder, moves through six explicit states (design, build, review, patch, manual-qa, done), and carries its own design.md and progress.md. Use this skill whenever starting a new project or feature, writing or grilling a design doc, picking up work that was left in progress, implementing something that has a design, reviewing a change-set, fixing review feedback, or logging progress. Also use it whenever the user mentions a project folder, design.md, progress.md, "where are we on X", or asks what to do next. If work is substantial enough to survive more than one sitting, it belongs in this workflow.
+description: The operating system for how projects get run in this repo. Every project lives in its own numbered folder, moves through six explicit states (design, build, review, patch, manual-qa, done), and carries its own design.md and progress.md. Use this skill whenever starting a new project or feature, writing or grilling a design doc, picking up work that was left in progress, implementing something that has a design, reviewing a change-set, fixing review feedback, or logging progress. Also use it whenever the user mentions a project folder, design.md, progress.md, "where are we on X", or asks what to do next. If work is substantial enough to survive more than one sitting, it belongs in this workflow. Load this skill again at every state transition, and whenever resuming project work later in a long session, even if it was already loaded earlier, because its contents do not survive context compaction and working from memory of it drifts.
 ---
 
 # Design to Done
@@ -66,6 +66,8 @@ A project is always in exactly one of these. The current one is declared in the 
 The normal path runs `design → build → review → manual-qa → done`, with `patch` as the loop-back that catches anything the review or the user rejects. Bouncing between `review` and `patch` several times is expected and healthy, not a sign of failure.
 
 **Your first move in any session is always the same:** open `progress.md`, read the header, read the last few log entries, and let that decide what you do. Do not guess from the conversation or from the shape of the code.
+
+**Re-read this file before every state transition.** Long sessions get compacted, and when they do, the text of this skill is summarized out of your context while the project files on disk stay exactly as they were. The failure is quiet: you keep working, you keep writing to `progress.md`, and the entries slowly revert to whatever your defaults are. Assume that has happened rather than assuming it hasn't. If you cannot bring to mind the specific rules for the state you are entering, you are not remembering them, and the fix is four seconds of reading.
 
 ---
 
@@ -197,6 +199,8 @@ It also changes what restraint is for. Every entry you write is context that fut
 
 ```markdown
 # 0004 — Quote Follow-up Nudges
+*Workflow: design-to-done. Re-read the skill before changing Status.*
+
 **Status:** patch
 **Next:** fix the two blocking review findings, then back to review
 **Open:** contractor off-switch has no UI, API only for now
@@ -269,7 +273,9 @@ design, so this is a patch round rather than a reopen. Both fixes are local to
 the delivery path and neither one reaches the data model.
 ```
 
-**Everything above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is currently unresolved, and it disappears when it resolves. This is where working state lives, and it is the reason the log does not need to carry it.
+**The workflow line at the very top never changes.** It is there because this file is the one thing you are guaranteed to open, which makes it the only reliable place to leave yourself a note that survives a compacted session. Carry it into every project.
+
+**Everything else above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is currently unresolved, and it disappears when it resolves. This is where working state lives, and it is the reason the log does not need to carry it.
 
 **Everything below is permanent.** Append an entry when the state changes, or when something happened that future-you would be wrong without. Not when you finished reading some files, not when you revised your own plan, not to mark that you are still working.
 
