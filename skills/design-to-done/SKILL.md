@@ -16,9 +16,19 @@ That single fact drives the whole framework. Two files carry a project: `design.
 
 So the working assumption is: **you could be shot down at any moment.** Not as a dramatic flourish, but as a design constraint. Write as though the next person to open these files knows nothing and has no way to ask you anything.
 
+But that constraint does not mean writing everything down. It means writing each thing down *in the right file*. There are three durable homes, and every fact you produce belongs to exactly one:
+
+- **`design.md`** holds decisions. What we're building, and why it's that way rather than some other way.
+- **The code** holds mechanics. How it works lives in the code, its comments, and its tests.
+- **`progress.md`** holds standing. Where the project is, and what happens next.
+
+Most of what passes through your head during a session belongs to none of them. The options you considered and discarded, the file you read to check an assumption, the half-formed plan you revised twice, the current draft of your thinking: that is the working state of a step, and it dies with the step. Persist the outcome, not the process that produced it.
+
 The second idea is a hard separation between **deciding** and **doing**. Design is where thinking happens, where options are weighed and killed. Build is where a settled decision gets executed. When those two blend, you get implementations that quietly invent product decisions nobody made, and design docs that describe what the code happens to do rather than what it should do. Keeping them apart is what makes the design file trustworthy as a source of truth.
 
-The third idea is that **state lives in the file, not in the conversation.** The status line at the top of `progress.md` is what the project actually is right now. You read it to decide what to do next. You update it the moment reality changes. Never carry state only in your head or in the chat.
+The third idea is that **state lives in the file, not in the conversation.** The header at the top of `progress.md` is what the project actually is right now. You read it to decide what to do next. You overwrite it the moment reality changes. Never carry state only in your head or in the chat.
+
+Note the difference in how the two halves of `progress.md` behave. The header is **overwritten**: it always describes the present, and its old contents are worthless the moment they stop being true. The log is **appended**: entries are permanent, so an entry earns its place only if it will still be worth reading months from now. Transient state goes in the header, where it gets replaced. It does not go in the log, where it accumulates forever.
 
 ---
 
@@ -28,7 +38,7 @@ The third idea is that **state lives in the file, not in the conversation.** The
 projects/
 └── 0004_quote-followup-nudges/
     ├── design.md      # what we're building and why. the source of truth.
-    ├── progress.md    # status header + running log. where we are.
+    ├── progress.md    # status header + milestone log. where we stand.
     └── assets/        # raw material: notes, screenshots, pdfs, dumps
 ```
 
@@ -68,12 +78,17 @@ This state is a conversation, not a document-generation task. The goal is that b
 **How to run it:**
 
 - **Ask one question at a time, then stop and wait.** Not three questions with sub-bullets. One. A wall of questions gets a shallow batch answer, which is exactly the failure mode this process exists to prevent.
-- **Each question is formatted** exactly like this**:
-```
-**<emoji: An emoji matching the question> <question: Direct, clear, simple>**
-<context: What the tension is, what the realistic options are, what each one costs. Build the user up to the point where they can decide just by reading what you wrote. A bare question offloads work onto the user that you should have done.>
-<recommendation: give your own recommendation with short reasoning, so they have something concrete to push against.>
-```
+- **Each question is formatted exactly like this:**
+
+  ```
+  **<emoji: an emoji matching the question> <question: direct, clear, simple>**
+  <context: what the tension is, what the realistic options are, what each one
+  costs. Build the user up to the point where they can decide just by reading
+  what you wrote. A bare question offloads work onto the user that you should
+  have done.>
+  <recommendation: your own answer with short reasoning, so they have something
+  concrete to push against.>
+  ```
 - **Update `design.md` after every single decision, before asking the next question.** This is not bookkeeping. If the session dies mid-design, everything settled so far survives.
 - **Walk the tree depth-first.** Resolve dependencies in order. A decision that unblocks three others comes before the three.
 - **Continue until every meaningful branch is resolved.** Meaningful is the operative word. Stop when what remains is only the stuff a competent developer would decide correctly on their own.
@@ -86,7 +101,7 @@ Write it the way you'd explain the project to a coworker over coffee. Narrative,
 
 **Keep it current.** The design file is the single source of truth for the life of the project. When a build-time discovery invalidates a design decision, the file gets updated. Code that has drifted from the design is either a bug or an undocumented decision, and both need resolving in the file.
 
-When the user considers it ready, mark the project `build` in `progress.md` and record anything worth carrying forward.
+When the user considers it ready, set the state to `build`. The design conversation itself produces no log entries: every decision it settles already lives in `design.md`, and open questions live in the header until they close. One entry when design opens, one when it closes, is enough.
 
 ---
 
@@ -100,7 +115,7 @@ Only then, write yourself an internal implementation plan. This is a private tod
 
 Then implement it, fully. Every aspect of the design file, realized in a reasonable way.
 
-Throughout, log to `progress.md`. Not a diary of keystrokes, but the things a stranger would need: what is now working, what you deliberately deferred, what surprised you, what you learned about the codebase that isn't obvious from reading it. If you get cut off mid-build, `progress.md` is the only thing standing between the next agent and starting over.
+Keep the header current as you go, so an interrupted build resumes from a sentence rather than from archaeology. Append to the log only when the state changes or when you hit something a future session would otherwise have to discover again the hard way. Explanations of how the codebase works belong in the code. Decisions you had to make belong in `design.md`.
 
 Move the project to `review` when the design is fully implemented.
 
@@ -139,7 +154,7 @@ For every finding, ask honestly: **would I actually block a PR for this?** If th
 
 If the change is solid, say so plainly. **A clean review is a valid outcome.** Manufacturing problems to justify the review is worse than finding nothing.
 
-Record the review in `progress.md`. If there is nothing critical or blocking, move the project to `manual-qa`. Otherwise, `patch`.
+Deliver the full review to the user. In `progress.md`, log the verdict and the count, not the findings themselves: they are about to be either fixed or dismissed, and the patch entry is what will still matter afterwards. If there is nothing critical or blocking, move the project to `manual-qa`. Otherwise, put the open findings in the header and move to `patch`.
 
 ---
 
@@ -151,7 +166,7 @@ Take the most recent review and work the CRITICAL and BLOCKING items. For each o
 
 Fix everything that survives that check.
 
-Record the reasoning in `progress.md`: what you fixed, what you didn't, and why. The "didn't, because" entries are the valuable ones, because they're the ones that will otherwise get re-litigated in a future session.
+Log what got fixed, briefly, and what you rejected and why. The rejections are the durable half: a finding dismissed without a recorded reason gets raised again by the next reviewer. If a rejection came from a design decision the reviewer had missed, the fix is to make `design.md` clearer, not to explain it in the log.
 
 When done, move the project back to `review` for a fresh round.
 
@@ -172,45 +187,112 @@ After a patch that came from manual QA rather than a code review, go back to `ma
 
 ## Progress
 
-`progress.md` is updated during and after every step except design questioning itself. You own this file.
+**You are writing this to yourself.** Not to a manager, not to a reviewer. To the version of you that opens this project cold in three weeks with none of today's context, and has to pick the work back up without redoing it and without walking into the same walls twice. The user may glance at the file to check in, but they are not the audience. You are.
 
-**Format:** a header, then log entries newest at the bottom, separated by `---`.
+That changes what belongs here. Future-you does not need reassurance that things are going well. Future-you needs the handful of facts that are true about this project and are not recoverable by reading `design.md` or the code: what is actually finished versus what merely looks finished, where the code and the design have drifted apart, and what you learned the hard way that cost you something to learn.
+
+It also changes what restraint is for. Every entry you write is context that future-you has to read and reconcile before doing anything. A log of forty entries is not thorough, it is a haystack, and the useful facts get buried in it. Protecting the signal in this file is protecting your own ability to think later.
+
+**Format:** a header describing the present, then log entries marking the past, newest at the bottom, separated by `---`.
 
 ```markdown
 # 0004 — Quote Follow-up Nudges
-**Status:** review
+**Status:** patch
+**Next:** fix the two blocking review findings, then back to review
+**Open:** contractor off-switch has no UI, API only for now
 **Last updated:** August 19, 2026, 4:10pm
 
 ---
 
-🏗️ **Build complete**
-*August 19, 2026, 11:05am*
+🌱 **Design opened**
+*August 18, 2026, 9:20am*
 
-All four nudge triggers from the design are implemented and wired into the
-scheduler. The 48-hour trigger reuses the existing reminder queue rather than
-getting its own worker, which wasn't in the design but avoids a second polling
-loop against the same table.
+Speccing out automated follow-up for quotes that go quiet. The original ask was
+one line, "nudge customers who haven't responded," and it turned out to be hiding
+three separate decisions rather than one: what counts as quiet, who gets the
+message when a quote has several contacts, and whether contractors can turn it
+off per quote.
 
-One thing worth knowing for whoever picks this up: quote status transitions are
-written in two places, the API handler and the webhook consumer. I hooked both.
-If a third writer appears, nudges will silently miss it.
+Six branches to resolve, two closed. The one that gates the rest is whether a
+nudge attaches to a quote or to a customer, because a customer sitting on four
+open quotes is the normal case here, not the edge case, and the answer changes
+the data model. The remaining four all hang off it.
 
 ---
 
-🔍 **Review: two blocking issues**
+✅ **Design settled, moving to build**
+*August 18, 2026, 4:45pm*
+
+Design is closed and written up in design.md. The committed shape: four
+time-based triggers, SMS only, nudges attached to the quote, and a per-quote off
+switch for the contractor.
+
+Two things ended up narrower than the original one-line ask, so the shipped
+behavior will not match anyone's memory of it. Email is out for this round, on
+deliverability cost. And a customer sitting on several quiet quotes gets several
+nudges rather than one combined message, which falls out of attaching to quotes
+rather than to customers. Both were the user's call, not drift.
+
+---
+
+🚧 **Build underway, one surprise**
+*August 19, 2026, 9:40am*
+
+Three of the four triggers work end to end against staging. The 48-hour one does
+not, and the reason is worth flagging because it wasn't visible at design time:
+quote status gets written in two different places in the codebase, so a quote can
+go quiet through a path the scheduler never hears about. Covering both writers is
+one extra hook rather than a rework, and it changes nothing we agreed on. Worth
+knowing that any future writer of quote status will hit the same trap.
+
+---
+
+🏗️ **Build complete, handing to review**
+*August 19, 2026, 11:05am*
+
+All four triggers are live in staging and firing correctly against seeded data.
+Everything in design.md is delivered with one exception, and it is the kind that
+gets forgotten: the contractor off switch exists and works, but has no UI, so it
+is reachable only through the API. design.md describes it as done. It is not, and
+reading that file alone would leave you believing it is. Needs either a follow-up
+project or a small addition to this one.
+
+---
+
+🔍 **Review: two blocking, nothing critical**
 *August 19, 2026, 4:10pm*
 
-🟡 BLOCKING — the webhook consumer path doesn't dedupe. A ServiceTitan retry
-inside the window fires the nudge twice. Users get two texts.
-
-🟡 BLOCKING — timezone is read from the user record, which is nullable for
-accounts created before March. Those nudges send at UTC midnight.
-
-Nothing critical. Moving to patch.
+Both findings are in delivery rather than in what we decided to build. Retries
+can fire the same nudge twice, and accounts created before March have no timezone
+on record, which lands their nudges at UTC midnight. Neither one touches the
+design, so this is a patch round rather than a reopen. Both fixes are local to
+the delivery path and neither one reaches the data model.
 ```
 
-**Each entry is:** an emoji plus a short headline, the date and time, then one or more paragraphs of actual content.
+**Everything above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is currently unresolved, and it disappears when it resolves. This is where working state lives, and it is the reason the log does not need to carry it.
 
-Write paragraphs, not bullet dumps. Every entry should leave the reader *understanding* something, not just informed that an event occurred. "Fixed the review issues" is a useless entry. What was actually wrong, what you did about it, and what that implies for the code is a useful one.
+**Everything below is permanent.** Append an entry when the state changes, or when something happened that future-you would be wrong without. Not when you finished reading some files, not when you revised your own plan, not to mark that you are still working.
 
-**The test for this file:** someone who has never seen the project opens `progress.md` and, within a couple of minutes, knows exactly where things stand and exactly what to do next. If your entry doesn't move a reader toward that, rewrite it.
+**Be stingy with entries, generous inside them.** The restraint in this file is about which events deserve an entry, not about how much each entry says. A log of five substantial paragraphs beats a log of thirty milestone ticks, and both beat a transcript.
+
+**What an entry has to carry.** In a paragraph or two: what is genuinely done, what is left, what you learned that changes the picture, and above all *what diverged from the plan*.
+
+Divergences are the highest-value content in this file, and the reason is specific. `design.md` is the source of truth, which means future-you will read it and believe the code matches it. Every gap between the two that you leave unrecorded is a trap you personally set. A feature that is built but unreachable, a design item quietly dropped, an approach abandoned mid-build: if it is not written down, the next session will either assume it works or waste a run rediscovering that it does not.
+
+Learnings are the second reason to write. Something that cost you real effort to find out, and that neither the design nor the code makes obvious, is worth a sentence. A hard-won fact recorded once is cheap; the same fact re-derived every session is not.
+
+**Don't invent schedules.** You have no reliable sense of how long anything takes in human time, so hours, days, and dates are guesses dressed up as facts, and future-you will read them as facts. Describe size and reach instead: whether the remaining work is contained or sprawling, how many pieces are left, whether a fix is local or touches the data model. That is the part you can be right about, and it is the part that actually informs what to do next.
+
+**Record consequences, not content.** The trap is reading "don't restate decisions" as "say nothing." You do not need to write down what was decided about trigger timing or why that answer is right, because you will read `design.md` before you touch anything anyway. You do need to write down that it closed, what it committed the build to, and what it cost. Name the thing, then say what it changed.
+
+The same discovery can legitimately appear in two places wearing two different hats. That the codebase writes quote status in two places belongs in the code, as a comment explaining why the scheduler hooks both. That it was invisible at design time and added unplanned work belongs here. Same fact, different jobs.
+
+**Before writing any entry, check where its content actually belongs:**
+
+- Is this a decision about what we're building, or the reasoning behind one? → `design.md`
+- Is this an explanation of how the code works? → the code, its comments, or its tests
+- Is this the current state of unfinished work? → the header, not the log
+- Is this something I considered and moved past? → nowhere
+- Does the code now differ from what `design.md` promises? → the log, prominently
+
+**The test for this file:** you come back to this project with no memory of it, read this file, and can start working without re-deriving anything and without stepping on a rake you already stepped on once. If you would have to go spelunking in the code to find out what state the work is in, the entries are too thin. If you have to read your own past deliberations to extract three usable facts, they are too thick.
