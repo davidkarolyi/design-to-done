@@ -68,7 +68,12 @@ This state is a conversation, not a document-generation task. The goal is that b
 **How to run it:**
 
 - **Ask one question at a time, then stop and wait.** Not three questions with sub-bullets. One. A wall of questions gets a shallow batch answer, which is exactly the failure mode this process exists to prevent.
-- **Every question comes with a brief.** Before you ask, lay out the context: what the tension is, what the realistic options are, what each one costs. Build the user up to the point where they can decide just by reading what you wrote. Then give your own recommendation with short reasoning, so they have something concrete to push against. A bare question offloads work onto the user that you should have done.
+- **Each question is formatted** exactly like this**:
+```
+**<emoji: An emoji matching the question> <question: Direct, clear, simple>**
+<context: What the tension is, what the realistic options are, what each one costs. Build the user up to the point where they can decide just by reading what you wrote. A bare question offloads work onto the user that you should have done.>
+<recommendation: give your own recommendation with short reasoning, so they have something concrete to push against.>
+```
 - **Update `design.md` after every single decision, before asking the next question.** This is not bookkeeping. If the session dies mid-design, everything settled so far survives.
 - **Walk the tree depth-first.** Resolve dependencies in order. A decision that unblocks three others comes before the three.
 - **Continue until every meaningful branch is resolved.** Meaningful is the operative word. Stop when what remains is only the stuff a competent developer would decide correctly on their own.
