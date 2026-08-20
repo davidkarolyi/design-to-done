@@ -1,9 +1,6 @@
 ---
 name: design-to-done
-license: MIT
-metadata:
-  version: 1.0.0
-description: The operating system for how projects get run in this repo. Every project lives in its own numbered folder, moves through six explicit states (design, build, review, patch, manual-qa, done), and carries its own design.md and progress.md. Use this skill whenever starting a new project or feature, writing or grilling a design doc, picking up work that was left in progress, implementing something that has a design, reviewing a change-set, fixing review feedback, or logging progress. Also use it whenever the user mentions a project folder, design.md, progress.md, "where are we on X", or asks what to do next. If work is substantial enough to survive more than one sitting, it belongs in this workflow. Load this skill again at every state transition, and whenever resuming project work later in a long session, even if it was already loaded earlier, because its contents do not survive context compaction and working from memory of it drifts.
+description: The operating system for how projects get run in this repo. Every project lives in its own numbered folder, moves through seven explicit states (design, design-review, build, review, patch, manual-qa, done), and carries its own design.md and progress.md. Use this skill whenever starting a new project or feature, writing or grilling a design doc, picking up work that was left in progress, implementing something that has a design, reviewing a change-set, fixing review feedback, or logging progress. Also use it whenever the user mentions a project folder, design.md, progress.md, "where are we on X", or asks what to do next. If work is substantial enough to survive more than one sitting, it belongs in this workflow. Load this skill again at every state transition, and whenever resuming project work later in a long session, even if it was already loaded earlier, because its contents do not survive context compaction and working from memory of it drifts.
 ---
 
 # Design to Done
@@ -50,20 +47,21 @@ projects/
 
 ---
 
-## The six states
+## The seven states
 
 A project is always in exactly one of these. The current one is declared in the header of `progress.md` and kept accurate by you.
 
 | State | Meaning |
 |---|---|
 | `design` | No `design.md` yet, or decisions remain open. Thinking is not finished. |
+| `design-review` | The design reads as complete. A cold reader is checking whether it actually is. |
 | `build` | Design is settled. Implementation can start or is underway. |
 | `review` | Implementation is done. Review can start or feedback has been given. |
 | `patch` | Review or QA surfaced critical/blocking issues. They are being fixed. |
 | `manual-qa` | Review is clear of critical/blocking issues. Waiting on the user to verify by hand. |
 | `done` | The user has approved it. Finished. |
 
-The normal path runs `design → build → review → manual-qa → done`, with `patch` as the loop-back that catches anything the review or the user rejects. Bouncing between `review` and `patch` several times is expected and healthy, not a sign of failure.
+The normal path runs `design → design-review → build → review → manual-qa → done`. Two loop-backs catch what gets rejected: `design-review` returns to `design`, and `review` or the user returns to `patch`. Bouncing between `review` and `patch` several times is expected and healthy, not a sign of failure.
 
 **Your first move in any session is always the same:** open `progress.md`, read the header, read the last few log entries, and let that decide what you do. Do not guess from the conversation or from the shape of the code.
 
@@ -103,7 +101,28 @@ Write it the way you'd explain the project to a coworker over coffee. Narrative,
 
 **Keep it current.** The design file is the single source of truth for the life of the project. When a build-time discovery invalidates a design decision, the file gets updated. Code that has drifted from the design is either a bug or an undocumented decision, and both need resolving in the file.
 
-When the user considers it ready, set the state to `build`. The decisions themselves do not go in the log, because they are already in `design.md`. How the design actually went does: a branch you explored and abandoned, a question the user answered in a way that redirected everything after it, research or design work you handed to a subagent or a separate session and what came back from it. None of that is recoverable from `design.md`, which records only where you landed.
+When the user considers it ready, set the state to `design-review`, not `build`. "The user is satisfied" is a fatigue signal as often as a completeness signal, and the next state exists to tell the two apart. The decisions themselves do not go in the log, because they are already in `design.md`. How the design actually went does: a branch you explored and abandoned, a question the user answered in a way that redirected everything after it, research or design work you handed to a subagent or a separate session and what came back from it. None of that is recoverable from `design.md`, which records only where you landed.
+
+---
+
+## Design review
+
+You are the worst possible auditor of a design you just wrote. The whole conversation is still in your context, so every gap in the file feels filled: you *know* what you agreed about error handling, even though nothing about it reached `design.md`. That blindness is invisible from the inside, and it is exactly the defect that surfaces later as a builder quietly inventing a product decision.
+
+So this state is not you rereading your own work. **Spawn a separate session and have it do the review**, following the handoff rules in the Subagents section below. Fresh context is the entire mechanism. Without it this state is a rubber stamp, which is worse than skipping it, because it manufactures confidence you did not earn.
+
+Ask it four questions:
+
+1. **Could a competent developer build this without inventing product decisions?** Where would they have to guess at something the user would have an opinion about?
+2. **Does this contradict the codebase?** Assumed endpoints that do not exist, patterns that conflict with how the system already works, statements that were true when written and are not now. This is the highest-value check and the reason the reviewer gets the repo and not just the file.
+3. **Does it contradict itself?** Two decisions that cannot both hold.
+4. **Is anything over-specified?** Implementation detail that crept into a product document. Nobody ever looks for this, and it ages badly.
+
+Design review can always produce another question, which is exactly why the severity floor in the reviewer brief matters more here than anywhere else. **A clean pass is a common and correct outcome**, and a reviewer that never approves anything is broken.
+
+**Bring findings back to the user in the same format as design questions**, emoji headline, context, recommendation, so they can approve the lot in one word or redirect the ones they disagree with. Then update `design.md` and move to `build`. If a finding reopens something genuinely unsettled, go back to `design` and grill it properly rather than patching the file in place.
+
+If you have no way to spawn a separate session, say so in the log rather than pretending. Reread `design.md` alone, in isolation, deliberately hunting for what a stranger could not infer. It is a weaker check and the log should record that it was the weaker one.
 
 ---
 
@@ -126,6 +145,8 @@ Move the project to `review` when the design is fully implemented.
 ## Review
 
 You are a pragmatic senior engineer reviewing a pull request. Emphasis on pragmatic.
+
+**Spawn a separate session for this too**, following the Subagents section below. Having just built the thing, you read intent into the code rather than reading what is there. Give the reviewer the branch or diff scope and the path to `design.md`, and again, not your account of what you built. What comes back is findings you did not derive yourself, which is the point and also why the patch state makes you verify each one before acting on it.
 
 Read the full change-set of the current branch against main before forming any opinion. Understand what this work is trying to do and why. Build a mental model of the intent, from the files changed and from `design.md`.
 
@@ -187,6 +208,43 @@ After a patch that came from manual QA rather than a code review, go back to `ma
 
 ---
 
+## Subagents
+
+Both review states are run by a separate session, not by you.
+
+**Why.** You cannot audit work you just did. The conversation is still in your context, so every gap feels filled and every line of code reads as what you meant rather than as what you wrote. A reviewer without that context is not a second opinion, it is the only opinion that can see what you cannot.
+
+**Withhold your understanding, not the project's files.** Do not summarize the design, do not explain why you chose what you chose, do not flag the parts you are unsure about. That is the contamination, and the urge to supply it is strongest while you are writing the spawn prompt. Everything the project has written down is a different matter and should be read: `design.md`, `progress.md`, the code, the history. Those are evidence. Your account of them is not.
+
+**Point it at this skill and let it work out its own scope.** Tell it which review it is running and where the project lives. It reads the skill, reads the project, and decides for itself what else it needs to look at. Do not hand it a reading list. A reviewer that only looks where you pointed will only find what you already suspected.
+
+If your session has been compacted you no longer hold this file's exact wording, so point rather than retell. If the reviewer cannot reach the skill, paste this verbatim instead:
+
+```
+You are running the <design-review | review> for <path to project folder>.
+
+Read the design-to-done skill and follow that section. Read the project's
+design.md and progress.md so you know where things stand, then explore the
+codebase as far as you need to.
+
+You have no context on this project beyond what you read, and that is
+deliberate rather than an oversight. Do not ask me for background.
+
+Report findings grouped by severity, or say plainly that it is clean. A clean
+pass is a valid and common outcome. Change nothing while you are in there: no
+edits, no progress.md, no state changes. The review is the whole job.
+```
+
+**Do not downgrade the reviewer.** Subagents inherit the parent's model and effort by default on both Claude Code and Codex, which is what you want, so the risk is a helpful-looking override rather than the default. Both tools advertise cheap subagents as a cost optimization, and that advice is for high-volume reading. This is the opposite: a judgment task whose value comes entirely from the reviewer being as capable as the builder. Do not pass a cheaper model or a lower effort on the invocation.
+
+**Do not use a conversation fork.** A fork inherits the whole parent conversation, which hands over exactly the context whose absence is the point. Anything else offering to carry context across for convenience is the same trap.
+
+**Note which model ran it** in the log entry. A clean verdict from a weak reviewer reads identically to a clean verdict from a strong one, and the log is the only place that difference survives.
+
+**If you cannot spawn a separate session at all**, say so in the log rather than pretending. Reread the material alone, deliberately hunting for what a stranger could not infer. It is a weaker check and the log should record that it was the weaker one.
+
+---
+
 ## Progress
 
 **You are writing this to yourself.** Not to a manager, not to a reviewer. To the version of you that opens this project cold in three weeks with none of today's context, and has to pick the work back up without redoing it and without walking into the same walls twice. The user may glance at the file to check in, but they are not the audience. You are.
@@ -221,6 +279,42 @@ Six branches to resolve, two closed. The one that gates the rest is whether a
 nudge attaches to a quote or to a customer, because a customer sitting on four
 open quotes is the normal case here, not the edge case, and the answer changes
 the data model. The remaining four all hang off it.
+
+---
+
+🧐 **Design review returned three findings**
+*August 18, 2026, 3:10pm*
+
+Cold session on design.md and the repo, same model as this one. Recording what
+came back before I act on any of it:
+
+🔴 design.md never says what happens when a quote is accepted in the window
+between a nudge being queued and being sent. A builder would have to invent
+the behavior.
+🟡 It assumes a `quotes.last_contacted_at` column. The schema has no such
+column, so this would have surfaced mid-build.
+🟢 "Nudge" and "reminder" are used interchangeably across sections.
+
+First two look real to me. I think the third is noise, but that is the user's
+call to make with the finding in front of them, not mine to make by leaving it
+out.
+
+---
+
+⚖️ **User's call: two in, one dropped**
+*August 18, 2026, 3:40pm*
+
+The acceptance-race fix went into design.md, but not as recommended. The
+reviewer proposed checking quote state when the nudge is queued; the user
+changed it to check at send time, since the whole failure mode lives in the gap
+between the two. Worth noting because the design file now differs from what the
+reviewer suggested, and a future reader would otherwise assume they match.
+
+Missing column becomes a migration, recorded in design.md as a build
+prerequisite. Naming finding dropped, user agreed it was noise.
+
+Nothing reopened a genuinely unsettled question, so no return to design.
+Moving to build.
 
 ---
 
@@ -365,6 +459,7 @@ The same discovery can legitimately appear in two places wearing two different h
 - Is this an option weighed during a design conversation and not chosen? → `design.md` if the reasoning matters, otherwise nowhere
 - Is this an approach I actually attempted and abandoned? → the log, always
 - Was this work done by a subagent, another session, a script, or the user? → the log, including what was asked and what came back
+- Did a reviewer or subagent hand something back? → the log as returned, before you act on it and separately from what you decided to do about it
 - Does the code now differ from what `design.md` promises? → the log, prominently
 
 **The test for this file:** your context is wiped mid-task. You read the header and the recent entries and pick up exactly where you were, knowing what you had tried, what you had rejected, what was in flight, and what you were about to do. If anything in that list would have to be reconstructed from the code or from guesswork, the entry that should have carried it was too thin.
