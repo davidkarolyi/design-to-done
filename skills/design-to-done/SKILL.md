@@ -103,7 +103,7 @@ Write it the way you'd explain the project to a coworker over coffee. Narrative,
 
 **Keep it current.** The design file is the single source of truth for the life of the project. When a build-time discovery invalidates a design decision, the file gets updated. Code that has drifted from the design is either a bug or an undocumented decision, and both need resolving in the file.
 
-When the user considers it ready, set the state to `build`. The design conversation itself produces no log entries: every decision it settles already lives in `design.md`, and open questions live in the header until they close. One entry when design opens, one when it closes, is enough.
+When the user considers it ready, set the state to `build`. The decisions themselves do not go in the log, because they are already in `design.md`. How the design actually went does: a branch you explored and abandoned, a question the user answered in a way that redirected everything after it, research or design work you handed to a subagent or a separate session and what came back from it. None of that is recoverable from `design.md`, which records only where you landed.
 
 ---
 
@@ -117,7 +117,7 @@ Only then, write yourself an internal implementation plan. This is a private tod
 
 Then implement it, fully. Every aspect of the design file, realized in a reasonable way.
 
-Keep the header current as you go, so an interrupted build resumes from a sentence rather than from archaeology. Append to the log only when the state changes or when you hit something a future session would otherwise have to discover again the hard way. Explanations of how the codebase works belong in the code. Decisions you had to make belong in `design.md`.
+Keep the header current as you go, and log as you go. Build is the state that generates the most history worth keeping and the state where losing it hurts most: an approach that failed, a file you touched and reverted, work you delegated, a constraint the user added mid-build. Write it down while it is happening, not in a summary at the end. Explanations of how the codebase works still belong in the code, and decisions still belong in `design.md`.
 
 Move the project to `review` when the design is fully implemented.
 
@@ -239,27 +239,77 @@ rather than to customers. Both were the user's call, not drift.
 
 ---
 
-🚧 **Build underway, one surprise**
+🤝 **UI design delegated to a separate session**
+*August 18, 2026, 5:30pm*
+
+User asked that the notification UI be designed in a spawned Claude session
+rather than by me, while I take the scheduler and trigger logic. Handed over the
+relevant part of design.md plus the existing settings-page components as
+reference. Waiting on it before I touch anything under `web/settings/`.
+
+Meanwhile I am starting on the scheduler, which is independent of whatever
+comes back.
+
+---
+
+↩️ **Tried cron, backed out, using the existing queue**
+*August 18, 2026, 6:40pm*
+
+First attempt put the triggers on a standalone cron worker in
+`workers/nudge-cron.ts`. Got it running, then abandoned it. Two schedulers
+polling the same quotes table meant the existing reminder worker and this one
+could both claim a quote, and the fix for that was a lock we would then own
+forever.
+
+Reverted the file. Triggers now enqueue onto the existing reminder queue in
+`lib/queue/reminders.ts` instead. Not a design change, design.md is silent on
+scheduling mechanism. If someone proposes a dedicated worker again later, this
+is why it was rejected the first time.
+
+---
+
+🚧 **Three of four triggers working, 48-hour one blocked**
 *August 19, 2026, 9:40am*
 
-Three of the four triggers work end to end against staging. The 48-hour one does
-not, and the reason is worth flagging because it wasn't visible at design time:
-quote status gets written in two different places in the codebase, so a quote can
-go quiet through a path the scheduler never hears about. Covering both writers is
-one extra hook rather than a rework, and it changes nothing we agreed on. Worth
-knowing that any future writer of quote status will hit the same trap.
+Working end to end against staging: the 24-hour, 72-hour, and 7-day triggers.
+Touched `lib/queue/reminders.ts`, `lib/nudges/triggers.ts`, and the migration in
+`db/migrations/0031_nudge_log.sql`. All three staged, nothing committed.
+
+The 48-hour trigger fires inconsistently and I found why. Quote status is
+written in two places, `api/quotes/[id]/status.ts` and the webhook consumer in
+`api/webhooks/servicetitan.ts`, and only the first emits the event the scheduler
+listens for. So a quote that goes quiet through the webhook path is invisible.
+Next step is hooking the second writer, which is one extra emit rather than a
+rework.
+
+Half-finished right now: `lib/nudges/triggers.ts` has a stub `onWebhookStatus`
+that does nothing. That is deliberate, not a bug to hunt.
+
+---
+
+🎨 **UI design came back, integrated**
+*August 19, 2026, 10:20am*
+
+The spawned session returned a settings panel design: per-quote toggle living
+on the quote detail page rather than in global settings, on the argument that
+contractors think per job. Reasonable and it matches how the triggers attach to
+quotes, so I took it as-is and recorded the decision in design.md.
+
+It did not cover the empty state for accounts with no quotes yet. I picked
+something obvious rather than spawning again for it. Worth a look during QA.
 
 ---
 
 🏗️ **Build complete, handing to review**
 *August 19, 2026, 11:05am*
 
-All four triggers are live in staging and firing correctly against seeded data.
-Everything in design.md is delivered with one exception, and it is the kind that
-gets forgotten: the contractor off switch exists and works, but has no UI, so it
-is reachable only through the API. design.md describes it as done. It is not, and
-reading that file alone would leave you believing it is. Needs either a follow-up
-project or a small addition to this one.
+All four triggers live in staging and firing correctly against seeded data, both
+status writers hooked. Everything in design.md is delivered with one exception,
+and it is the kind that gets forgotten: the contractor off switch exists and
+works, but has no UI, so it is reachable only through the API. design.md
+describes it as done. It is not, and reading that file alone would leave you
+believing it is. Needs either a follow-up project or a small addition to this
+one.
 
 ---
 
@@ -277,9 +327,23 @@ the delivery path and neither one reaches the data model.
 
 **Everything else above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is currently unresolved, and it disappears when it resolves. This is where working state lives, and it is the reason the log does not need to carry it.
 
-**Everything below is permanent.** Append an entry when the state changes, or when something happened that future-you would be wrong without. Not when you finished reading some files, not when you revised your own plan, not to mark that you are still working.
+**Everything below is permanent, and it is a working journal, not a milestone list.** Append an entry when:
 
-**Be stingy with entries, generous inside them.** The restraint in this file is about which events deserve an entry, not about how much each entry says. A log of five substantial paragraphs beats a log of thirty milestone ticks, and both beat a transcript.
+- you finish a real chunk of work, not just when a state ends
+- you change approach, or try something and back out of it
+- you hand work to a subagent, a separate session, a script, or the user, and again when it comes back
+- the user redirects you, adds a constraint, or rejects something
+- you discover something that changes the plan
+- you are about to start something long or risky
+- the state changes
+
+The bar is not importance in hindsight. It is whether a session that resumed here without it would be missing something.
+
+**The discipline here is not brevity, it is non-duplication.** Do not write down what `design.md` already decides or what the code already explains. Everything else about how the work actually went is yours to record, and you should be thorough about it. A long log of concrete history is fine. A short log of tidy milestones is not, however well written, because it reads as though the project advanced by magic.
+
+**Name things.** An entry that says a phase is complete across three pages has told you nothing you could act on. An entry that names the files, the command, the error text, the deployment ID, the specific thing that broke and what fixed it, is worth rereading. Abstraction is the main failure mode in this file, and it is worse than verbosity, because vague summary looks like information while carrying none.
+
+**Mid-work entries carry state, not just events.** If you are stopping mid-task or logging while work is in flight, say where you actually are: what is done, what is half-done, which files you have touched and which are staged, what you were about to do next, what is currently broken and expected to be. Future-you should be able to resume mid-task, not just mid-project.
 
 **What an entry has to carry.** In a paragraph or two: what is genuinely done, what is left, what you learned that changes the picture, and above all *what diverged from the plan*.
 
@@ -298,7 +362,11 @@ The same discovery can legitimately appear in two places wearing two different h
 - Is this a decision about what we're building, or the reasoning behind one? → `design.md`
 - Is this an explanation of how the code works? → the code, its comments, or its tests
 - Is this the current state of unfinished work? → the header, not the log
-- Is this something I considered and moved past? → nowhere
+- Is this an option weighed during a design conversation and not chosen? → `design.md` if the reasoning matters, otherwise nowhere
+- Is this an approach I actually attempted and abandoned? → the log, always
+- Was this work done by a subagent, another session, a script, or the user? → the log, including what was asked and what came back
 - Does the code now differ from what `design.md` promises? → the log, prominently
 
-**The test for this file:** you come back to this project with no memory of it, read this file, and can start working without re-deriving anything and without stepping on a rake you already stepped on once. If you would have to go spelunking in the code to find out what state the work is in, the entries are too thin. If you have to read your own past deliberations to extract three usable facts, they are too thick.
+**The test for this file:** your context is wiped mid-task. You read the header and the recent entries and pick up exactly where you were, knowing what you had tried, what you had rejected, what was in flight, and what you were about to do. If anything in that list would have to be reconstructed from the code or from guesswork, the entry that should have carried it was too thin.
+
+The opposite failure still exists, but it looks different from being long. It is restating decisions that live in `design.md`, explaining mechanics that live in the code, and narrating deliberation that went nowhere. Length is not the problem. Duplication and vagueness are.
