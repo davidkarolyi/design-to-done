@@ -25,7 +25,7 @@ The second idea is a hard separation between **deciding** and **doing**. Design 
 
 The third idea is that **state lives in the file, not in the conversation.** The header at the top of `progress.md` is what the project actually is right now. You read it to decide what to do next. You overwrite it the moment reality changes. Never carry state only in your head or in the chat.
 
-Note the difference in how the two halves of `progress.md` behave. The header is **overwritten**: it always describes the present, and its old contents are worthless the moment they stop being true. The log is **appended**: entries are permanent, so an entry earns its place only if it will still be worth reading months from now. Transient state goes in the header, where it gets replaced. It does not go in the log, where it accumulates forever.
+Note the difference in how the two halves of `progress.md` behave. The header is **overwritten**: it always describes the present, and its old contents are worthless the moment they stop being true. The log is **appended**: entries are permanent, so an entry earns its place only if it will still be worth reading months from now. Transient state goes in the header, where it gets replaced. What does not go in the log is a copy of it. An entry whose whole content is where things stand right now is stale by the next session, and the header already answers that question better. Where you actually stood when you stopped mid-task is a different thing and does belong in the log, because an entry is fixed in time: it says where you were then, not where the project is now.
 
 ---
 
@@ -34,6 +34,8 @@ Note the difference in how the two halves of `progress.md` behave. The header is
 Everything above is about not losing work. This is about not wasting it.
 
 Every project has a few pillars holding it up and a long tail of things that merely look like pillars. The work is figuring out which is which, then spending nearly everything you have on the few and almost nothing on the rest. Not because the rest doesn't matter, but because attention is the scarce resource here, and spreading it evenly is how both halves end up mediocre.
+
+That sorting is the job. Not the typing, and not the amount of ground covered: find the tenth of the work that carries ninety percent of the outcome, then have the nerve to leave the other nine tenths alone. Anyone can implement a spec end to end. Deciding which parts of it deserve real attention is the part that takes an engineer.
 
 The instinct this takes is easy to describe and hard to hold. Before any piece of work, ask what changes if you get it wrong. If the honest answer is that nobody notices for six months, that is not a thing to solve. It is a thing to write down and walk past. A gap you named and deferred is closed work. A gap you quietly polished for an hour is the expensive kind of thorough, and it cost you the hour you needed for the thing that actually breaks.
 
@@ -135,7 +137,7 @@ That second list is the release valve that makes the rest of the discipline work
 
 **Keep it current.** The design file is the single source of truth for the life of the project. When a build-time discovery invalidates a design decision, the file gets updated. Code that has drifted from the design is either a bug or an undocumented decision, and both need resolving in the file.
 
-When the user considers it ready, set the state to `design-review`, not `build`. "The user is satisfied" is a fatigue signal as often as a completeness signal, and the next state exists to tell the two apart. The decisions themselves do not go in the log, because they are already in `design.md`. How the design actually went does: a branch you explored and abandoned, a question the user answered in a way that redirected everything after it, research or design work you handed to a subagent or a separate session and what came back from it. None of that is recoverable from `design.md`, which records only where you landed.
+When the user considers it ready, set the state to `design-review`, not `build`. "The user is satisfied" is a fatigue signal as often as a completeness signal, and the next state exists to tell the two apart. The reasoning behind each decision does not go in the log, because it is already in `design.md`. What the design closed on does, in a line or two: the shape the build is now committed to, and anything about it that will not match someone's memory of the original ask. And how the design actually went: a branch you explored and abandoned, a question the user answered in a way that redirected everything after it, research or design work you handed to a subagent or a separate session and what came back from it. None of that is recoverable from `design.md`, which records only where you landed.
 
 ---
 
@@ -508,10 +510,11 @@ something obvious rather than spawning again for it. Worth a look during QA.
 All four triggers live in staging and firing correctly against seeded data, both
 status writers hooked. Everything in design.md is delivered with one exception,
 and it is the kind that gets forgotten: the contractor off switch exists and
-works, but has no UI, so it is reachable only through the API. design.md
-describes it as done. It is not, and reading that file alone would leave you
-believing it is. Needs either a follow-up project or a small addition to this
-one.
+works, but has no UI, so it is reachable only through the API. design.md said
+it was done, so I marked it API-only there before handing off. Recording it here
+too, because that file now reads as if API-only were the plan all along, and it
+was not. Still needs a UI, either a follow-up project or a small addition to
+this one, and that is the user's call at manual QA.
 
 ---
 
@@ -554,7 +557,7 @@ Divergences are the highest-value content in this file, and the reason is specif
 
 Learnings are the second reason to write. Something that cost you real effort to find out, and that neither the design nor the code makes obvious, is worth a sentence. A hard-won fact recorded once is cheap; the same fact re-derived every session is not.
 
-**Mid-work entries carry state, not just events.** If you are stopping mid-task or logging while work is in flight, say where you actually are: what is done, what is half-done, which files you have touched and which are staged, what you were about to do next, what is currently broken and expected to be. Future-you should be able to resume mid-task, not just mid-project.
+**Mid-work entries carry state, not just events.** This is the one case where state belongs in the log rather than only in the header, and it works because the entry is dated and never rewritten. If you are stopping mid-task or logging while work is in flight, say where you actually are: what is done, what is half-done, which files you have touched and which are staged, what you were about to do next, what is currently broken and expected to be. Future-you should be able to resume mid-task, not just mid-project.
 
 The same discovery can legitimately appear in two places wearing two different hats. That the codebase writes quote status in two places belongs in the code, as a comment explaining why the scheduler hooks both. That it was invisible at design time and added unplanned work belongs here. Same fact, different jobs.
 
