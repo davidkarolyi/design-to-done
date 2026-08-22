@@ -19,7 +19,7 @@ But that constraint does not mean writing everything down. It means writing each
 - **The code** holds mechanics. How it works lives in the code, its comments, and its tests.
 - **`progress.md`** holds standing. Where the project is, and what happens next.
 
-Most of what passes through your head during a session belongs to none of them. The options you considered and discarded, the file you read to check an assumption, the half-formed plan you revised twice, the current draft of your thinking: that is the working state of a step, and it dies with the step. Persist the outcome, not the process that produced it.
+Most of what passes through your head during a session belongs to none of them. The options you considered and discarded, the file you read to check an assumption, the half-formed plan you revised twice, the current draft of your thinking: that is the working state of a step, and it dies with the step. What survives is the outcome, plus any approach you actually committed to and then backed out of, because that one cost something and the next session would otherwise pay for it again.
 
 The second idea is a hard separation between **deciding** and **doing**. Design is where thinking happens, where options are weighed and killed. Build is where a settled decision gets executed. When those two blend, you get implementations that quietly invent product decisions nobody made, and design docs that describe what the code happens to do rather than what it should do. Keeping them apart is what makes the design file trustworthy as a source of truth.
 
@@ -29,19 +29,44 @@ Note the difference in how the two halves of `progress.md` behave. The header is
 
 ---
 
+## Where the effort goes
+
+Everything above is about not losing work. This is about not wasting it.
+
+Every project has a few pillars holding it up and a long tail of things that merely look like pillars. The work is figuring out which is which, then spending nearly everything you have on the few and almost nothing on the rest. Not because the rest doesn't matter, but because attention is the scarce resource here, and spreading it evenly is how both halves end up mediocre.
+
+The instinct this takes is easy to describe and hard to hold. Before any piece of work, ask what changes if you get it wrong. If the honest answer is that nobody notices for six months, that is not a thing to solve. It is a thing to write down and walk past. A gap you named and deferred is closed work. A gap you quietly polished for an hour is the expensive kind of thorough, and it cost you the hour you needed for the thing that actually breaks.
+
+That is why the first thing a design conversation settles is what the project is for and what would make it a failure. An MVP built to find out whether anyone wants this fails by not shipping. A payments path fails by being wrong once. Those two deserve different conversations, different amounts of rigor, and different checks. Without that line written down you will give them the same one, because in the absence of stated stakes every question looks equally worth asking. It is genuinely true that deleting a user's data has legal implications. It is also true that settling that policy before a single person has used the product is how a two-week project becomes a six-week one that still hasn't learned anything.
+
+The same trade governs how you verify things: a check should be as strong as the thing it protects, not as strong as you can make it. That one gets a section of its own below, because it is where the instinct is hardest to hold.
+
+None of this is permission to be careless. It is the opposite. Cutting the work that does not move the needle is what buys you room to be genuinely careful about the work that does. You are not choosing between fast and good. You are choosing what to be good at, and refusing to choose is how everything ends up merely adequate.
+
+Two habits follow, and they show up in every state below:
+
+- **Say what you are not doing.** Noticing something and deliberately leaving it is a complete action rather than a lapse, but only once it is recorded. Unwritten, it is indistinguishable from having missed it, and the next session pays to rediscover it.
+- **Check that the question is load-bearing.** If both answers produce the same code, you do not have a question. You have a detail, and it is yours to decide.
+
+---
+
 ## Anatomy of a project
 
 ```
 projects/
 └── 0004_quote-followup-nudges/
     ├── design.md      # what we're building and why. the source of truth.
-    ├── progress.md    # status header + milestone log. where we stand.
+    ├── progress.md    # status header + working log. where we stand.
     └── assets/        # raw material: notes, screenshots, pdfs, dumps
 ```
 
+**Starting one.** Four moves, in this order. Cut a branch off `main` named for the project, `0004-quote-followup-nudges`. Create the folder with an empty `assets/`. Write `progress.md` with the workflow line, `Status: design`, and nothing else settled yet. Then open the design conversation with the stakes question.
+
+Everything the project produces, the design file and the code alike, lands on that branch, and nothing merges until `done`. Both review states diff the branch against `main`, so a project built directly on `main` hands its reviewer nothing to read.
+
 **Numbering.** Four digits, zero-padded, sequential. Scan `projects/` for the highest existing number and take the next one. The number never changes and never gets reused, even if the project dies. Slug is short, lowercase, hyphenated, and describes the thing rather than the ticket.
 
-**`design.md` does not exist at project creation.** A new project folder is just `progress.md` (status `design`) and an empty `assets/`. The design file accretes, one decision at a time, during the design conversation. Stubbing it out with empty headings in advance invites filling in a template rather than earning each decision.
+**`design.md` does not exist at project creation.** That absence is deliberate. The design file accretes, one decision at a time, during the design conversation. Stubbing it out with empty headings in advance invites filling in a template rather than earning each decision.
 
 **`assets/` is the junk drawer, on purpose.** Anything unstructured goes there without ceremony: a pasted error log, a screenshot of a competitor's UI, a PDF spec, a half-formed voice-note transcript. It has no schema and needs none. Its job is to make sure raw material has somewhere to land so it doesn't end up polluting `design.md`, which has to stay clean and decided.
 
@@ -56,12 +81,14 @@ A project is always in exactly one of these. The current one is declared in the 
 | `design` | No `design.md` yet, or decisions remain open. Thinking is not finished. |
 | `design-review` | The design reads as complete. A cold reader is checking whether it actually is. |
 | `build` | Design is settled. Implementation can start or is underway. |
-| `review` | Implementation is done. Review can start or feedback has been given. |
-| `patch` | Review or QA surfaced critical/blocking issues. They are being fixed. |
+| `review` | Implementation is done. A cold reader is checking whether it does what the design says. |
+| `patch` | A code review found critical or blocking issues, or manual QA came back with changes. They are being fixed. |
 | `manual-qa` | Review is clear of critical/blocking issues. Waiting on the user to verify by hand. |
 | `done` | The user has approved it. Finished. |
 
-The normal path runs `design → design-review → build → review → manual-qa → done`. Two loop-backs catch what gets rejected: `design-review` returns to `design`, and `review` or the user returns to `patch`. Bouncing between `review` and `patch` several times is expected and healthy, not a sign of failure.
+The normal path runs `design → design-review → build → review → manual-qa → done`. Two things send it backwards, and both are normal. A code review with critical or blocking findings returns to `patch`, which then goes back to `review`. Manual QA feedback also returns to `patch`, but that round hands back to `manual-qa` rather than `review`, because the user asked for something specific and it is theirs to re-check. Bouncing between `review` and `patch` several times is expected and healthy, not a sign of failure.
+
+A design review is the exception that usually does not loop. Its findings get settled with the user and folded into `design.md`, and the project moves straight on to `build`. It goes back to `design` only when a finding reopens a question that was never really closed.
 
 **Your first move in any session is always the same:** open `progress.md`, read the header, read the last few log entries, and let that decide what you do. Do not guess from the conversation or from the shape of the code.
 
@@ -77,6 +104,7 @@ This state is a conversation, not a document-generation task. The goal is that b
 
 **How to run it:**
 
+- **The first question is always the stakes.** What is this for, what would make it a failure, and what happens if a piece of it turns out wrong. A few sentences, at the top of `design.md`, before any other decision. It is the frame for everything after it, including which decisions are worth making at all, and everything downstream reads it: the design reviewer, the code reviewer, the QA plan, and you every time you are about to spend the user's attention on something.
 - **Ask one question at a time, then stop and wait.** Not three questions with sub-bullets. One. A wall of questions gets a shallow batch answer, which is exactly the failure mode this process exists to prevent.
 - **Each question is formatted exactly like this:**
 
@@ -91,8 +119,9 @@ This state is a conversation, not a document-generation task. The goal is that b
   ```
 - **Update `design.md` after every single decision, before asking the next question.** This is not bookkeeping. If the session dies mid-design, everything settled so far survives.
 - **Walk the tree depth-first.** Resolve dependencies in order. A decision that unblocks three others comes before the three.
-- **Continue until every meaningful branch is resolved.** Meaningful is the operative word. Stop when what remains is only the stuff a competent developer would decide correctly on their own.
-- **Ask how each thing gets checked.** A decision that commits to real behavior needs a companion decision about how anyone would see it working. Those questions belong in this conversation, in this format, and the next section is how to think about them.
+- **Before asking, work out what each answer would change.** If both answers produce the same code, you do not have a design question. You have a detail, and deciding it yourself is the job. The tell is a question you can already answer sensibly but feel you ought to raise anyway.
+- **Continue until every meaningful branch is resolved.** Meaningful is measured against the stakes, not against completeness. A branch is meaningful if getting it wrong would hurt the thing this project exists to do. Stop when what remains is what a competent developer would decide correctly on their own, or what nobody would notice for months. Those get a line in the deferred list, not a conversation.
+- **Ask how each thing gets checked.** A decision that commits to real behavior needs a companion decision about how anyone would see it working. Those questions belong in this conversation, in this format, and the QA plan section below is how to think about them.
 
 **What goes in `design.md`:**
 
@@ -100,7 +129,9 @@ Product-level decisions. What we're building, and why. Skip anything an intellig
 
 Write it the way you'd explain the project to a coworker over coffee. Narrative, direct, concrete. Prose over bullet-fragments. The reader should finish it *understanding* the project, not merely instructed by it. A design doc that reads like a checklist has failed even if every item on it is correct, because the next person can follow it without ever grasping why any of it is that way.
 
-The one exception is the QA plan, which closes the file and is a list on purpose. Its job is to be worked through rather than understood.
+Two parts of the file are lists on purpose. The QA plan closes it, because its job is to be worked through rather than understood. And the file carries what you decided *not* to do: a short **deferred** list, one line each, naming the gap, why it can wait, and what would make it urgent.
+
+That second list is the release valve that makes the rest of the discipline work. Deferring is a decision like any other, and an unrecorded one gets raised again by every reviewer and every future session until somebody finally does the work nobody wanted. Written down, it is settled and nobody spends on it twice. The reason you can walk past something is that walking past it leaves a trace.
 
 **Keep it current.** The design file is the single source of truth for the life of the project. When a build-time discovery invalidates a design decision, the file gets updated. Code that has drifted from the design is either a bug or an undocumented decision, and both need resolving in the file.
 
@@ -108,7 +139,9 @@ When the user considers it ready, set the state to `design-review`, not `build`.
 
 ---
 
-## How you'll see it work
+## The QA plan
+
+This is not a state. It is still the design conversation, and it is the half that settles how anyone will see the thing work. What comes out of it is the one section of `design.md` that the builder, the reviewer, and the user all run.
 
 Producing the code is the cheap half. Finding out whether it does what you think it does is the expensive half, and the usual outcome is that you never really find out. You read your own diff, it looks right, you call it done. That is flying blind, and it is most of the difference between shipping working software and shipping plausible software.
 
@@ -121,6 +154,8 @@ So decide up front how each thing gets checked, and reach down this ladder in or
 **2. Something throwaway you build in ten minutes.** For when a human has to look, or the real thing is too tangled to instantiate. A scratch script that prints the decision for twenty fabricated inputs, so you iterate on the logic in front of you and lift the verified version into the codebase afterwards. A standalone HTML file with the markup hardcoded. A temp route mounting the real component with fake props. A tiny server that answers one request. It is scaffolding, it does not have to be good, and it gets deleted.
 
 **3. The app itself, with the ceremony bypassed.** For when the question is honestly about the whole system. Run it locally, then find the shortest way past login and navigation: a dev token, a seeded session, a direct API call, a browser you drive and screenshot. If no such bypass exists yet, stop and propose building one as its own piece of work, done properly and documented. Otherwise every feature after this one pays the same tax, and paying it once turns this rung from an hour into a minute.
+
+**Size the check to what it protects.** A check does not need to be airtight. It needs to be strong enough that whatever it misses is something you can live with. So the question to ask about a proposed check is never "would this catch everything," it is "what would it miss, and would that matter here." Ninety percent of the confidence for a tenth of the work is the right trade nearly every time, and reaching for the airtight version usually means you stopped asking what you were protecting. A three-line assertion on the one calculation that decides what a customer gets charged is worth more than a browser suite that clicks through every screen and asserts nothing sharp.
 
 The instruments are yours to invent. What matters is the instinct: find the shortest path between you and the evidence, then take it.
 
@@ -148,23 +183,28 @@ If something genuinely has no cheap check, write that down and say why. A named 
 
 ## Design review
 
-You are the worst possible auditor of a design you just wrote. The whole conversation is still in your context, so every gap in the file feels filled: you *know* what you agreed about error handling, even though nothing about it reached `design.md`. That blindness is invisible from the inside, and it is exactly the defect that surfaces later as a builder quietly inventing a product decision.
+**Spawn a separate session and have it do the review**, following the handoff rules in the Subagents section below. This state is not you rereading your own work.
 
-So this state is not you rereading your own work. **Spawn a separate session and have it do the review**, following the handoff rules in the Subagents section below. Fresh context is the entire mechanism. Without it this state is a rubber stamp, which is worse than skipping it, because it manufactures confidence you did not earn.
+You are the worst possible auditor of a design you just wrote. The whole conversation is still in your context, so every gap in the file feels filled: you *know* what you agreed about error handling, even though nothing about it reached `design.md`. That blindness is invisible from the inside, and it is exactly the defect that surfaces later as a builder quietly inventing a product decision. Fresh context is the entire mechanism. Without it this state is a rubber stamp, which is worse than skipping it, because it manufactures confidence you did not earn.
 
-Ask it five questions:
+Everything below is the brief that session works from. You are the first person to read this design without having been in the room while it was written, and that is the whole reason you were called. Six questions:
 
 1. **Could a competent developer build this without inventing product decisions?** Where would they have to guess at something the user would have an opinion about?
 2. **Does this contradict the codebase?** Assumed endpoints that do not exist, patterns that conflict with how the system already works, statements that were true when written and are not now. This is the highest-value check and the reason the reviewer gets the repo and not just the file.
 3. **Does it contradict itself?** Two decisions that cannot both hold.
 4. **Is anything over-specified?** Implementation detail that crept into a product document. Nobody ever looks for this, and it ages badly.
 5. **Could you run the QA plan, and would it prove what the design claims?** A check reads as unambiguous to whoever wrote it and as a guessing game to everyone else. You are the first cold reader the plan has met, so you are the only one who can tell.
+6. **Is anything here more than the goal needs?** Read the stakes at the top of the file, then hunt for rigor that outruns them: a decision agonized over that either answer would have survived, a check built to be airtight around something reversible, scope that crept past what this project exists to learn. This question runs opposite to the other five, and it is the one nobody thinks to ask, which is why over-built designs sail through review and under-built ones do not.
 
-Design review can always produce another question, which is exactly why the severity floor in the reviewer brief matters more here than anywhere else. **A clean pass is a common and correct outcome**, and a reviewer that never approves anything is broken.
+**Severity here is about what the finding costs downstream, not about how wrong it is:**
 
-**Bring findings back to the user in the same format as design questions**, emoji headline, context, recommendation, so they can approve the lot in one word or redirect the ones they disagree with. Then update `design.md` and move to `build`. If a finding reopens something genuinely unsettled, go back to `design` and grill it properly rather than patching the file in place.
+- 🔴 **CRITICAL** — a builder would have to invent a product decision, or the design assumes something about the codebase that is not true. Blocks build.
+- 🟡 **BLOCKING** — a real gap or an internal contradiction that will surface mid-build and cost a rework. Settle it first, open to discussion.
+- 🟢 **MINOR** — wording, a small inconsistency, a nice-to-have. Say it once and move on.
 
-If you have no way to spawn a separate session, say so in the log rather than pretending. Reread `design.md` alone, in isolation, deliberately hunting for what a stranger could not infer. It is a weaker check and the log should record that it was the weaker one.
+Design review can always produce another question, which is exactly why the stakes matter more here than anywhere else. Weigh every finding against them before reporting it: a gap that would not change what gets built, or would cost nothing if guessed wrong, is not a finding. **A clean pass is a common and correct outcome**, and a reviewer that never approves anything is broken.
+
+**The reviewer's job ends there. What follows is yours, once the findings come back.** Bring them to the user in the same format as design questions, emoji headline, context, recommendation, so they can approve the lot in one word or redirect the ones they disagree with. Then update `design.md` and move to `build`. If a finding reopens something genuinely unsettled, go back to `design` and grill it properly rather than patching the file in place.
 
 ---
 
@@ -182,15 +222,15 @@ Work against the QA plan the whole way, not at the end. The reason it was settle
 
 Keep the header current as you go, and log as you go. Build is the state that generates the most history worth keeping and the state where losing it hurts most: an approach that failed, a file you touched and reverted, work you delegated, a constraint the user added mid-build. Write it down while it is happening, not in a summary at the end. Explanations of how the codebase works still belong in the code, and decisions still belong in `design.md`.
 
-Move the project to `review` when the design is fully implemented and the QA plan runs clean.
+Move the project to `review` when the design is fully implemented and the QA plan runs clean. A named omission still counts as fully implemented. Write the gap in the log, and in `design.md` wherever the design still claims that part works, and it does not hold up the handoff, because nobody will mistake it for working code. An unrecorded omission is a different thing, and it does hold it up.
 
 ---
 
 ## Review
 
-You are a pragmatic senior engineer reviewing a pull request. Emphasis on pragmatic.
+**Spawn a separate session for this too**, following the Subagents section below. Give the reviewer the branch or diff scope and the path to `design.md`, and again, not your account of what you built. Having just built the thing, you read intent into the code rather than reading what is there. What comes back is findings you did not derive yourself, which is the point and also why the patch state makes you verify each one before acting on it.
 
-**Spawn a separate session for this too**, following the Subagents section below. Having just built the thing, you read intent into the code rather than reading what is there. Give the reviewer the branch or diff scope and the path to `design.md`, and again, not your account of what you built. What comes back is findings you did not derive yourself, which is the point and also why the patch state makes you verify each one before acting on it.
+Everything below is the brief that session works from. You are a pragmatic senior engineer reviewing a pull request. Emphasis on pragmatic.
 
 Read the full change-set of the current branch against main before forming any opinion. Understand what this work is trying to do and why. Build a mental model of the intent, from the files changed and from `design.md`.
 
@@ -201,6 +241,10 @@ Then run the QA plan, and report what you saw separately from what you read. You
 Then zoom out. How does this land in the rest of the codebase? Did everything that needed updating get updated? Are there other features touching the same data, the same state, the same UI, that now behave differently without anyone noticing? Ripple effects are where the expensive bugs live.
 
 For every finding, ask honestly: **would I actually block a PR for this?** If the real answer is "no, I'd mention it in passing," label it accordingly. Do not pad a review with nitpicks to look thorough. One real finding beats ten theoretical ones, and a review full of noise trains everyone to skim the next one.
+
+**Weigh every finding against the stakes at the top of `design.md`.** The same missing null check is critical in a payments path and noise in a prototype built to find out whether anyone wants the feature. Severity is not a property of the code. It is a property of the code in this project, and a reviewer who ignores that reports the same list for every codebase they ever see.
+
+**Every round is a full review, and the bar does not move between them.** Only CRITICAL and BLOCKING ever send the project back to `patch`, and that is as true on round one as on round four. So keep looking everywhere each time, and raise a real bug the moment you find one, however late it turns up. A minor gets said once and dropped, in every round: not filed, not deferred, not carried forward. Endless review loops are not caused by finding new things, they are caused by treating every new thing as a reason to go around again.
 
 **Focus on:**
 - Functional correctness above all. If this shipped today, would a user hit a bug in normal use?
@@ -217,13 +261,13 @@ For every finding, ask honestly: **would I actually block a PR for this?** If th
 **Severity:**
 - 🔴 **CRITICAL** — a real bug users will hit in normal usage, or a serious oversight breaking core functionality. Must be fixed before merge.
 - 🟡 **BLOCKING** — significantly degrades the experience, causes confusing behavior, or sets a maintainability trap we'll regret soon. Should be fixed, open to discussion.
-- 🟢 **MINOR** — nice-to-have, style note, or unlikely edge case. Never holds up the PR.
+- 🟢 **MINOR** — nice-to-have, style note, or unlikely edge case. Never holds up the PR and never earns a follow-up round. Say it once and let it go.
 
 **Format:** group findings by severity, most critical first. For each one, state the problem, where it is, and why it matters, in plain language. Show the code if it helps. Suggest a fix where you can.
 
 If the change is solid, say so plainly. **A clean review is a valid outcome.** Manufacturing problems to justify the review is worse than finding nothing.
 
-Deliver the full review to the user. In `progress.md`, log the verdict and the count, not the findings themselves: they are about to be either fixed or dismissed, and the patch entry is what will still matter afterwards. Anything running the QA plan turned up that reading the diff did not belongs in the log as well, because that is evidence rather than an opinion awaiting resolution. If there is nothing critical or blocking, move the project to `manual-qa`. Otherwise, put the open findings in the header and move to `patch`.
+**The brief ends there. What follows is yours, once the review comes back.** Deliver it to the user in full. In `progress.md`, log the verdict and each finding as the reviewer stated it, before you form a view on any of them. Minors included: recording one is not filing it, and it still never earns another round. Your own filtering is the thing most worth a record here, because an entry listing only the findings you already agreed with cannot be checked later. The ones you dismissed left no trace. What you then decide about each is a separate entry, written in `patch`. Anything running the QA plan turned up that reading the diff did not belongs in the log as well, because that is evidence rather than an opinion awaiting resolution. If there is nothing critical or blocking, move the project to `manual-qa`. Otherwise, put the open findings in the header and move to `patch`.
 
 ---
 
@@ -231,13 +275,19 @@ Deliver the full review to the user. In `progress.md`, log the verdict and the c
 
 Begin exactly as you do in build: rebuild deep understanding of what this work is doing. Do not go straight to the diff and start swatting comments.
 
-Take the most recent review and work the CRITICAL and BLOCKING items. For each one, first verify it: is it real, and is fixing it reasonable? Be practical. Reviews are fallible, including your own. A finding that turns out to be wrong, or whose fix costs more than the problem, gets a documented decision rather than a silent skip.
+**Two things land you here, and they are worked differently.** From a code review, the work is the CRITICAL and BLOCKING items of the most recent one. From manual QA, it is whatever the user asked for in the log entry that recorded it, all of it, however small: they are not filing severities, they are telling you what they want.
 
-Fix everything that survives that check, then rerun the parts of the QA plan that cover what you touched. A fix nobody looked at is a guess.
+Verify each review finding before acting on it: is it real, and is fixing it reasonable? Be practical. Reviews are fallible, including your own. There are three verdicts, not two.
 
-Log what got fixed, briefly, and what you rejected and why. The rejections are the durable half: a finding dismissed without a recorded reason gets raised again by the next reviewer. If a rejection came from a design decision the reviewer had missed, the fix is to make `design.md` clearer, not to explain it in the log.
+- **Fix it.** Then rerun the parts of the QA plan that cover what you touched. A fix nobody looked at is a guess.
+- **Reject it.** The finding is wrong, or the fix costs more than the problem. It gets a documented decision rather than a silent skip.
+- **Real, but not now.** A genuine problem that does not threaten what this project is for. It goes on the deferred list in `design.md`, with the reason and what would make it urgent. That closes it, and it stops coming back every round, which is the whole point: an open finding costs you attention on every pass until it is either fixed or written down.
 
-When done, move the project back to `review` for a fresh round.
+A request from the user is not a finding and does not get those three verdicts. If you think one is a mistake, say so and let them decide, rather than deciding for them.
+
+Log what got fixed, briefly, and what you rejected or deferred and why. Those two are the durable half: a finding dismissed without a recorded reason gets raised again by the next reviewer. If a rejection came from a design decision the reviewer had missed, the fix is to make `design.md` clearer, not to explain it in the log.
+
+**Where you go when you are done depends on where you came from.** A patch that came from a code review goes back to `review` for a fresh round. A patch that came from manual QA goes back to `manual-qa`, because the user asked for something specific and it is theirs to re-check. The one exception is a manual-QA fix that grew broad enough to be worth a cold read, which earns a `review` round first.
 
 ---
 
@@ -247,10 +297,8 @@ This state belongs to the user. Your job is to hand off cleanly and then wait.
 
 Say what changed, what you'd like verified, and anything worth watching for. The QA plan is what you hand them, so they are not inventing a way to test this from scratch. Say which of it you already ran and what you saw, so their time goes to the parts that need a person's judgment. Then stop. Do not roll straight into more work.
 
-- If the user gives feedback, record it in `progress.md` as a log entry, faithfully and in their framing, and set the state to `patch`.
+- If the user gives feedback, record it in `progress.md` as a log entry, faithfully and in their framing, and set the state to `patch`. That round hands the work back here, not to `review`.
 - If the user approves, set the state to `done` and write a final log entry recording that they cleared it, along with any context worth preserving.
-
-After a patch that came from manual QA rather than a code review, go back to `manual-qa` rather than `review`, unless the fix was broad enough to warrant a fresh review pass. The user asked for something specific; hand it back to them.
 
 ---
 
@@ -275,6 +323,10 @@ codebase as far as you need to.
 
 You have no context on this project beyond what you read, and that is
 deliberate rather than an oversight. Do not ask me for background.
+
+Weigh every finding against the stakes at the top of design.md, which say what
+this project is for and what would make it fail. A gap that would not change
+what gets built, or would cost nothing if guessed wrong, is not a finding.
 
 Report findings grouped by severity, or say plainly that it is clean. A clean
 pass is a valid and common outcome. If you are running the code review, run the
@@ -301,7 +353,7 @@ job.
 
 That changes what belongs here. Future-you does not need reassurance that things are going well. Future-you needs the handful of facts that are true about this project and are not recoverable by reading `design.md` or the code: what is actually finished versus what merely looks finished, where the code and the design have drifted apart, and what you learned the hard way that cost you something to learn.
 
-It also changes what restraint is for. Every entry you write is context that future-you has to read and reconcile before doing anything. A log of forty entries is not thorough, it is a haystack, and the useful facts get buried in it. Protecting the signal in this file is protecting your own ability to think later.
+It also changes what restraint is for. Every entry you write is context that future-you has to read and reconcile before doing anything, so an entry that duplicates `design.md` or says nothing concrete is not neutral: it buries the ones that matter. Restraint here is about what an entry carries, never about how many there are or how long they run. Protecting the signal in this file is protecting your own ability to think later.
 
 **Format:** a header describing the present, then log entries marking the past, newest at the bottom, separated by `---`.
 
@@ -471,11 +523,16 @@ can fire the same nudge twice, and accounts created before March have no timezon
 on record, which lands their nudges at UTC midnight. Neither one touches the
 design, so this is a patch round rather than a reopen. Both fixes are local to
 the delivery path and neither one reaches the data model.
+
+A third finding, that the nudge log has no retention policy, went to the
+deferred list in design.md rather than into this round. Real, but nothing
+breaks until that table is large, and this round is about getting nudges out
+the door correctly. Recording it here so nobody re-raises it as an oversight.
 ```
 
 **The workflow line at the very top never changes.** It is there because this file is the one thing you are guaranteed to open, which makes it the only reliable place to leave yourself a note that survives a compacted session. Carry it into every project.
 
-**Everything else above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is currently unresolved, and it disappears when it resolves. This is where working state lives, and it is the reason the log does not need to carry it.
+**Everything else above the first `---` gets overwritten.** `Status` is the state. `Next` is the single sentence someone needs to resume. `Open` is whatever is unresolved and still in scope, and it disappears when it resolves. That scope clause is the line between `Open` and the deferred list in `design.md`: something you still intend to do in this project is `Open`, something you have decided not to do is deferred. When a gap crosses that line it leaves the header and goes to `design.md`. This is where working state lives, and it is the reason the log does not need to carry it.
 
 **Everything below is permanent, and it is a working journal, not a milestone list.** Append an entry when:
 
@@ -491,26 +548,27 @@ The bar is not importance in hindsight. It is whether a session that resumed her
 
 **The discipline here is not brevity, it is non-duplication.** Do not write down what `design.md` already decides or what the code already explains. Everything else about how the work actually went is yours to record, and you should be thorough about it. A long log of concrete history is fine. A short log of tidy milestones is not, however well written, because it reads as though the project advanced by magic.
 
-**Name things.** An entry that says a phase is complete across three pages has told you nothing you could act on. An entry that names the files, the command, the error text, the deployment ID, the specific thing that broke and what fixed it, is worth rereading. Abstraction is the main failure mode in this file, and it is worse than verbosity, because vague summary looks like information while carrying none.
-
-**Mid-work entries carry state, not just events.** If you are stopping mid-task or logging while work is in flight, say where you actually are: what is done, what is half-done, which files you have touched and which are staged, what you were about to do next, what is currently broken and expected to be. Future-you should be able to resume mid-task, not just mid-project.
-
 **What an entry has to carry.** In a paragraph or two: what is genuinely done, what is left, what you learned that changes the picture, and above all *what diverged from the plan*.
 
 Divergences are the highest-value content in this file, and the reason is specific. `design.md` is the source of truth, which means future-you will read it and believe the code matches it. Every gap between the two that you leave unrecorded is a trap you personally set. A feature that is built but unreachable, a design item quietly dropped, an approach abandoned mid-build: if it is not written down, the next session will either assume it works or waste a run rediscovering that it does not.
 
 Learnings are the second reason to write. Something that cost you real effort to find out, and that neither the design nor the code makes obvious, is worth a sentence. A hard-won fact recorded once is cheap; the same fact re-derived every session is not.
 
-**Don't invent schedules.** You have no reliable sense of how long anything takes in human time, so hours, days, and dates are guesses dressed up as facts, and future-you will read them as facts. Describe size and reach instead: whether the remaining work is contained or sprawling, how many pieces are left, whether a fix is local or touches the data model. That is the part you can be right about, and it is the part that actually informs what to do next.
-
-**Record consequences, not content.** The trap is reading "don't restate decisions" as "say nothing." You do not need to write down what was decided about trigger timing or why that answer is right, because you will read `design.md` before you touch anything anyway. You do need to write down that it closed, what it committed the build to, and what it cost. Name the thing, then say what it changed.
+**Mid-work entries carry state, not just events.** If you are stopping mid-task or logging while work is in flight, say where you actually are: what is done, what is half-done, which files you have touched and which are staged, what you were about to do next, what is currently broken and expected to be. Future-you should be able to resume mid-task, not just mid-project.
 
 The same discovery can legitimately appear in two places wearing two different hats. That the codebase writes quote status in two places belongs in the code, as a comment explaining why the scheduler hooks both. That it was invisible at design time and added unplanned work belongs here. Same fact, different jobs.
+
+**Three ways an entry fails, none of them length:**
+
+- **Vagueness.** An entry that says a phase is complete across three pages has told you nothing you could act on. Name the files, the command, the error text, the deployment ID, the specific thing that broke and what fixed it. Abstraction is the main failure mode in this file, and it is worse than verbosity, because vague summary looks like information while carrying none.
+- **Invented schedules.** You have no reliable sense of how long anything takes in human time, so hours, days, and dates are guesses dressed up as facts, and future-you will read them as facts. Describe size and reach instead: whether the remaining work is contained or sprawling, how many pieces are left, whether a fix is local or touches the data model. That is the part you can be right about, and it is the part that actually informs what to do next.
+- **Restating what lives elsewhere.** The trap is reading "don't restate decisions" as "say nothing." You do not need to write down what was decided about trigger timing or why that answer is right, because you will read `design.md` before you touch anything anyway. You do need to write down that it closed, what it committed the build to, and what it cost. Name the thing, then say what it changed.
 
 **Before writing any entry, check where its content actually belongs:**
 
 - Is this a decision about what we're building, or the reasoning behind one? → `design.md`
 - Is this how something gets verified? → `design.md`, in the QA plan
+- Is this a gap I noticed and deliberately chose not to close? → `design.md`, in the deferred list, with why it can wait
 - Is this an explanation of how the code works? → the code, its comments, or its tests
 - Is this the current state of unfinished work? → the header, not the log
 - Is this an option weighed during a design conversation and not chosen? → `design.md` if the reasoning matters, otherwise nowhere
@@ -520,5 +578,3 @@ The same discovery can legitimately appear in two places wearing two different h
 - Does the code now differ from what `design.md` promises? → the log, prominently
 
 **The test for this file:** your context is wiped mid-task. You read the header and the recent entries and pick up exactly where you were, knowing what you had tried, what you had rejected, what was in flight, and what you were about to do. If anything in that list would have to be reconstructed from the code or from guesswork, the entry that should have carried it was too thin.
-
-The opposite failure still exists, but it looks different from being long. It is restating decisions that live in `design.md`, explaining mechanics that live in the code, and narrating deliberation that went nowhere. Length is not the problem. Duplication and vagueness are.
